@@ -25,9 +25,9 @@ def setUpWorld(initialSimSteps=100):
     
     p.loadURDF("table/table.urdf", [0, 0, -1], useFixedBase=True)
     
-    p.loadURDF("cube/boston_box_blue.urdf", [0, 0, 0])
-    p.loadURDF("cube/boston_box_red.urdf", [0, 0, 0])
-    p.loadURDF("cube/boston_box_green.urdf", [0, 0, 0])
+    # p.loadURDF("cube/boston_box_blue.urdf", [0, 0, 0])
+    # p.loadURDF("cube/boston_box_red.urdf", [0, 0, 0])
+    # p.loadURDF("cube/boston_box_green.urdf", [0, 0, 0])
     
     
     p.loadURDF("basket/basket.urdf", [-1, 0, -1])
@@ -136,10 +136,10 @@ def accurateIK(bodyId, endEffectorId, targetPosition, lowerLimits, upperLimits, 
         newPos = ls[4]
         diff = [targetPosition[0]-newPos[0],targetPosition[1]-newPos[1],targetPosition[2]-newPos[2]]
         dist2 = np.sqrt((diff[0]*diff[0] + diff[1]*diff[1] + diff[2]*diff[2]))
-        print("dist2=",dist2)
+        # print("dist2=",dist2)
         closeEnough = (dist2 < threshold)
         iter=iter+1
-    print("iter=",iter)
+    # print("iter=",iter)
     return jointPoses
 
 def setMotors(bodyId, jointPoses):
@@ -159,6 +159,33 @@ def setMotors(bodyId, jointPoses):
             p.setJointMotorControl2(bodyIndex=bodyId, jointIndex=i, controlMode=p.POSITION_CONTROL,
                                     targetPosition=jointPoses[qIndex-7])
 
+def randomSpawn():
+    arr = np.random.randint(3,size=1)
+    rnd = np.random.randint(4,size=1)
+    arr1 = np.random.randint(500,size=2)
+
+    x = arr1[0]/1000
+    y = arr1[1]/1000 
+    if rnd[0]==0:
+        pass
+    elif rnd[0]==1:
+        x=-1*x
+    elif rnd[0]==2:
+        y=-1*y
+    else:
+        y=-1*y
+        x=-1*x
+
+    if arr[0]==0:
+        p.loadURDF("cube/boston_box_blue.urdf", [x, y, -0.29])
+    elif arr[0]==1:
+        p.loadURDF("cube/boston_box_red.urdf", [x, y, -0.29])
+    elif arr[0]==2:
+        p.loadURDF("cube/boston_box_green.urdf", [x, y, -0.29])
+
+
+    print(arr[0])
+    
 
 
 if __name__ == "__main__":
@@ -176,8 +203,8 @@ if __name__ == "__main__":
     lowerLimits, upperLimits, jointRanges, restPoses = getJointRanges(baxterId, includeFixed=False)
 
     
-    #targetPosition = [0.2, 0.8, -0.1]
-    #targetPosition = [0.8, 0.2, -0.1]
+    # targetPosition = [0.2, 0.8, -0.1]
+    # targetPosition = [0.8, 0.2, -0.1]
     targetPosition = [0.2, 0.0, -0.1]
     
     p.addUserDebugText("TARGET", targetPosition, textColorRGB=[1,0,0], textSize=1.5)
@@ -188,7 +215,7 @@ if __name__ == "__main__":
     sleep(1.)
 
     p.getCameraImage(320,200, renderer=p.ER_BULLET_HARDWARE_OPENGL )
-    for _ in range(maxIters):
+    for i in range(maxIters):
       p.stepSimulation()
       targetPosX = p.readUserDebugParameter(targetPosXId)
       targetPosY = p.readUserDebugParameter(targetPosYId)
@@ -196,9 +223,10 @@ if __name__ == "__main__":
       nullSpace = p.readUserDebugParameter(nullSpaceId)
 
       targetPosition=[targetPosX,targetPosY,targetPosZ]
-      
+      if i%100 ==0:
+        randomSpawn()
       useNullSpace = nullSpace>0.5
-      print("useNullSpace=",useNullSpace)
+    #   print("useNullSpace=",useNullSpace)
       jointPoses = accurateIK(baxterId, endEffectorId, targetPosition, lowerLimits, upperLimits, jointRanges, restPoses, useNullSpace=useNullSpace)
       setMotors(baxterId, jointPoses)
 
