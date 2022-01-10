@@ -1,34 +1,91 @@
 from time import sleep
 import pybullet as p
 import numpy as np
+import cv2
+import time
 
+position = []
+color = ""
 
+def detection():
+    global green_pos
+    global color
+    
+    frame = get_camera_image()
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    
+    lower_blue = np.array([110,50,50])
+    upper_blue = np.array([130,255,255])
+    blue_mask = cv2.inRange(hsv, lower_blue, upper_blue)
+    
+    lower_green = np.array([50, 100, 100])
+    upper_green = np.array([70, 255, 255])
+    green_mask = cv2.inRange(hsv, lower_green, upper_green)
+
+    lower_red = np.array([0, 255, 116])
+    upper_red = np.array([6, 255, 255])
+    red_mask = cv2.inRange(hsv, lower_red, upper_red)
+
+    count_blue = cv2.countNonZero(blue_mask)
+    count_green = cv2.countNonZero(green_mask)
+    count_red = cv2.countNonZero(red_mask)
+    
+    if count_green > 0:
+        color = "Green"
+    
+    elif count_red > 0:
+        color = "Red"
+        
+    elif count_blue > 0:
+        color = "Blue"
+        
+    res = cv2.bitwise_and(frame, frame, mask= green_mask)
+    res2 = cv2.bitwise_and(frame, frame, mask= red_mask)
+    res3 = cv2.bitwise_and(frame, frame, mask= blue_mask)
+    
+    cv2.imshow("frame", frame)
+    cv2.imshow("green", res)
+    cv2.imshow("red", res2)
+    cv2.imshow("blue", res3)
+    
+
+def get_camera_image():
+    view_matrix = p.computeViewMatrix(
+            cameraEyePosition=[0, 0, 0.98],
+            cameraTargetPosition=[0, 0, .6],
+            cameraUpVector=[0, 1, 0])
+
+    projection_matrix = p.computeProjectionMatrixFOV(
+            fov=45.0,
+            aspect=1.0,
+            nearVal=0.1,
+            farVal=1.5)
+            
+    width, height, rgb, depth, seg = p.getCameraImage(
+        width=480,
+        height=320,
+        projectionMatrix = projection_matrix,
+        viewMatrix = view_matrix
+        )
+    return rgb
 
 def setUpWorld(initialSimSteps=100):
     """
     Reset the simulation to the beginning and reload all models.
-
     Parameters
     ----------
     initialSimSteps : int
-
     Returns
     -------
     baxterId : int
-    endEffectorId : int 
+    endEffectorId : int
     """
     p.resetSimulation()
-
     
     # Load plane
     p.loadURDF("plane.urdf", [0, 0, -1], useFixedBase=True)
     
     p.loadURDF("table/table.urdf", [0, 0, -1], useFixedBase=True)
-    
-    # p.loadURDF("cube/boston_box_blue.urdf", [0, 0, 0])
-    # p.loadURDF("cube/boston_box_red.urdf", [0, 0, 0])
-    # p.loadURDF("cube/boston_box_green.urdf", [0, 0, 0])
-    
     
     p.loadURDF("basket/basket.urdf", [-1, 0, -1])
     p.loadURDF("basket/basket.urdf", [-1, -0.4, -1])
@@ -48,14 +105,14 @@ def setUpWorld(initialSimSteps=100):
     endEffectorId = 48 # (left gripper left finger)
 
     # Set gravity
-    p.setGravity(0., 0., -10.)
+    p.setGravity(0., 0., -50)
 
     # Let the world run for a bit
     for _ in range(initialSimSteps):
         p.stepSimulation()
 
     return baxterId, endEffectorId
-
+    
 def getJointRanges(bodyId, includeFixed=False):
     """
     Parameters
@@ -136,10 +193,10 @@ def accurateIK(bodyId, endEffectorId, targetPosition, lowerLimits, upperLimits, 
         newPos = ls[4]
         diff = [targetPosition[0]-newPos[0],targetPosition[1]-newPos[1],targetPosition[2]-newPos[2]]
         dist2 = np.sqrt((diff[0]*diff[0] + diff[1]*diff[1] + diff[2]*diff[2]))
-        # print("dist2=",dist2)
+#        print("dist2=",dist2)
         closeEnough = (dist2 < threshold)
         iter=iter+1
-    # print("iter=",iter)
+#    print("iter=",iter)
     return jointPoses
 
 def setMotors(bodyId, jointPoses):
@@ -149,23 +206,25 @@ def setMotors(bodyId, jointPoses):
     bodyId : int
     jointPoses : [float] * numDofs
     """
+    
     numJoints = p.getNumJoints(bodyId)
-
+   
     for i in range(numJoints):
         jointInfo = p.getJointInfo(bodyId, i)
-        #print(jointInfo)
         qIndex = jointInfo[3]
         if qIndex > -1:
-            p.setJointMotorControl2(bodyIndex=bodyId, jointIndex=i, controlMode=p.POSITION_CONTROL,
+            p.setJointMotorControl2(bodyIndex=bodyId, jointIndex=40, controlMode=p.POSITION_CONTROL,
                                     targetPosition=jointPoses[qIndex-7])
-
+   
 def randomSpawn():
+    global position
+    
     arr = np.random.randint(3,size=1)
     rnd = np.random.randint(4,size=1)
-    arr1 = np.random.randint(500,size=2)
+    arr1 = np.random.randint(150,size=2)
 
     x = arr1[0]/1000
-    y = arr1[1]/1000 
+    y = arr1[1]/1000
     if rnd[0]==0:
         pass
     elif rnd[0]==1:
@@ -176,59 +235,52 @@ def randomSpawn():
         y=-1*y
         x=-1*x
 
-    if arr[0]==0:
-        p.loadURDF("cube/boston_box_blue.urdf", [x, y, -0.29])
-    elif arr[0]==1:
-        p.loadURDF("cube/boston_box_red.urdf", [x, y, -0.29])
-    elif arr[0]==2:
-        p.loadURDF("cube/boston_box_green.urdf", [x, y, -0.29])
-
-
-    print(arr[0])
+    box_id = 0
     
+    if arr[0]==0:
+        box_id = p.loadURDF("cube/boston_box_blue.urdf", [x, y, -0.35])
+    elif arr[0]==1:
+        box_id = p.loadURDF("cube/boston_box_red.urdf", [x, y, -0.35])
+    elif arr[0]==2:
+        box_id = p.loadURDF("cube/boston_box_green.urdf", [x, y, -0.35])
 
-
+    position, cubeOrn = p.getBasePositionAndOrientation(box_id)
+    
 if __name__ == "__main__":
+    
     guiClient = p.connect(p.GUI)
     p.resetDebugVisualizerCamera(2., 180, 0., [0.52, 0.2, np.pi/4.])
-
-
-    targetPosXId = p.addUserDebugParameter("targetPosX",-1,1,0.2)
-    targetPosYId = p.addUserDebugParameter("targetPosY",-1,1,0)
-    targetPosZId = p.addUserDebugParameter("targetPosZ",-1,1,-0.1)
-    nullSpaceId = p.addUserDebugParameter("nullSpace",0,1,1)
-
+    nullSpaceId = p.addUserDebugParameter("nullSpace",0,1,0)
     baxterId, endEffectorId = setUpWorld()
-
     lowerLimits, upperLimits, jointRanges, restPoses = getJointRanges(baxterId, includeFixed=False)
-
-    
-    # targetPosition = [0.2, 0.8, -0.1]
-    # targetPosition = [0.8, 0.2, -0.1]
-    targetPosition = [0.2, 0.0, -0.1]
-    
-    p.addUserDebugText("TARGET", targetPosition, textColorRGB=[1,0,0], textSize=1.5)
-
-
     maxIters = 100000
 
-    sleep(1.)
+    time.sleep(2.)
 
-    p.getCameraImage(320,200, renderer=p.ER_BULLET_HARDWARE_OPENGL )
+    p.getCameraImage(320,200, renderer=p.ER_BULLET_HARDWARE_OPENGL)
+    
     for i in range(maxIters):
       p.stepSimulation()
-      targetPosX = p.readUserDebugParameter(targetPosXId)
-      targetPosY = p.readUserDebugParameter(targetPosYId)
-      targetPosZ = p.readUserDebugParameter(targetPosZId)
       nullSpace = p.readUserDebugParameter(nullSpaceId)
-
-      targetPosition=[targetPosX,targetPosY,targetPosZ]
-      if i%100 ==0:
+      
+      if i % 50 == 0:
         randomSpawn()
-      useNullSpace = nullSpace>0.5
-    #   print("useNullSpace=",useNullSpace)
+        detection()
+        
+      useNullSpace = nullSpace > 0.5
+      if (i % 50) < 20:
+        targetPosition = [position[0],position[1],-0.30]
+      elif (i % 50) > 40:
+        targetPosition = [position[0],position[1],-0.20]
+      elif (i % 50) > 20:
+        targetPosition = [position[0],position[1],-0.35]
+        nullSpaceId = p.addUserDebugParameter("nullSpace",0,1,1)
+      
       jointPoses = accurateIK(baxterId, endEffectorId, targetPosition, lowerLimits, upperLimits, jointRanges, restPoses, useNullSpace=useNullSpace)
+      p.setJointMotorControl2(bodyIndex = baxterId, jointIndex = 49, controlMode = p.POSITION_CONTROL, targetPosition = 1)
+      p.setJointMotorControl2(bodyIndex = baxterıd, jointIndex = 51, controlMode = p.POSITION_CONTROL, targetPosition = -1)
       setMotors(baxterId, jointPoses)
+      
 
       #sleep(0.1)
 
