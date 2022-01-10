@@ -278,7 +278,7 @@ if __name__ == "__main__":
       
       jointPoses = accurateIK(baxterId, endEffectorId, targetPosition, lowerLimits, upperLimits, jointRanges, restPoses, useNullSpace=useNullSpace)
       p.setJointMotorControl2(bodyIndex = baxterId, jointIndex = 49, controlMode = p.POSITION_CONTROL, targetPosition = 1)
-      p.setJointMotorControl2(bodyIndex = baxterıd, jointIndex = 51, controlMode = p.POSITION_CONTROL, targetPosition = -1)
+      p.setJointMotorControl2(bodyIndex = baxterId, jointIndex = 51, controlMode = p.POSITION_CONTROL, targetPosition = -1)
       setMotors(baxterId, jointPoses)
       
 
