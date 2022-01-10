@@ -7,6 +7,7 @@ import time
 position = []
 color = ""
 
+
 def detection():
     global green_pos
     global color
@@ -246,6 +247,24 @@ def randomSpawn():
 
     position, cubeOrn = p.getBasePositionAndOrientation(box_id)
     
+
+def moveTo(targetPosition, prevPos = [0,0,0]):
+	currentPos = prevPos.copy()
+	for i in range(100):
+		currentPos[0] = currentPos[0] + ((targetPosition[0] - prevPos[0]) / 100)
+		currentPos[1] = currentPos[1] + ((targetPosition[1] - prevPos[1]) / 100)
+		currentPos[2] = currentPos[2] + ((targetPosition[2] - prevPos[2]) / 100)
+		lowerLimits, upperLimits, jointRanges, restPoses = getJointRanges(baxterId, includeFixed=False)
+		jointPoses = accurateIK(baxterId, endEffectorId, currentPos, lowerLimits, upperLimits, jointRanges, restPoses, useNullSpace=useNullSpace)
+		setMotors(baxterId, jointPoses)
+		p.stepSimulation()
+  
+def runNSteps(n):
+    for i in range(n):
+    	time.sleep(0.01)
+    	p.stepSimulation()
+    	
+    
 if __name__ == "__main__":
     
     guiClient = p.connect(p.GUI)
@@ -259,27 +278,70 @@ if __name__ == "__main__":
 
     p.getCameraImage(320,200, renderer=p.ER_BULLET_HARDWARE_OPENGL)
     
+    previousLoopPos= [0, 0, 0]
+    
     for i in range(maxIters):
       p.stepSimulation()
       nullSpace = p.readUserDebugParameter(nullSpaceId)
       
-      if i % 50 == 0:
-        randomSpawn()
-        detection()
-        
+      #if i % 100 == 0:
+      randomSpawn()
+      detection()
+      
+      runNSteps(100)
+       
+      
+       
       useNullSpace = nullSpace > 0.5
-      if (i % 50) < 20:
+      targetPosition = [position[0],position[1],-0.30]
+      moveTo(targetPosition, previousLoopPos)
+      
+      
+      
+      p.setJointMotorControl2(bodyIndex = baxterId, jointIndex = 49, controlMode = p.POSITION_CONTROL, force = 100, targetPosition = 1)
+      p.setJointMotorControl2(bodyIndex = baxterId, jointIndex = 51, controlMode = p.POSITION_CONTROL, force = 100, targetPosition = -1)
+      runNSteps(100)
+
+      prevPos = targetPosition.copy()
+      targetPosition = [position[0],position[1],-0.35]
+      nullSpaceId = p.addUserDebugParameter("nullSpace",0,1,1)
+      moveTo(targetPosition, prevPos)
+      
+      
+      p.setJointMotorControl2(bodyIndex = baxterId, jointIndex = 49, controlMode = p.POSITION_CONTROL, force = 100, targetPosition = -1)
+      p.setJointMotorControl2(bodyIndex = baxterId, jointIndex = 51, controlMode = p.POSITION_CONTROL, force = 100, targetPosition = 1)
+      runNSteps(100)
+      
+      prevPos = targetPosition.copy()
+      targetPosition = [position[0],position[1],-0.20]
+      nullSpaceId = p.addUserDebugParameter("nullSpace",0,1,1)
+      moveTo(targetPosition, prevPos)
+      
+      previousLoopPos = targetPosition.copy()
+       
+       
+        
+      """
+      useNullSpace = nullSpace > 0.5
+      if (i % 100) < 10:
         targetPosition = [position[0],position[1],-0.30]
-      elif (i % 50) > 40:
-        targetPosition = [position[0],position[1],-0.20]
-      elif (i % 50) > 20:
+        moveTo(targetPosition)
+      elif (i % 100) > 10 and (i % 100) < 40:
+      	p.setJointMotorControl2(bodyIndex = baxterId, jointIndex = 49, controlMode = p.POSITION_CONTROL, force = 100, targetPosition = 1)
+      	p.setJointMotorControl2(bodyIndex = baxterId, jointIndex = 51, controlMode = p.POSITION_CONTROL, force = 100, targetPosition = -1)
+      elif (i % 100) > 40 and (i % 100) < 50:
         targetPosition = [position[0],position[1],-0.35]
         nullSpaceId = p.addUserDebugParameter("nullSpace",0,1,1)
+        moveTo(targetPosition)
+      elif (i % 100) > 50 and (i % 100) < 80:
+      	p.setJointMotorControl2(bodyIndex = baxterId, jointIndex = 49, controlMode = p.POSITION_CONTROL, force = 100, targetPosition = -1)
+      	p.setJointMotorControl2(bodyIndex = baxterId, jointIndex = 51, controlMode = p.POSITION_CONTROL, force = 100, targetPosition = 1)
+      elif (i % 100) > 80:
+        targetPosition = [position[0],position[1],-0.20]
+        moveTo(targetPosition)
+      """
       
-      jointPoses = accurateIK(baxterId, endEffectorId, targetPosition, lowerLimits, upperLimits, jointRanges, restPoses, useNullSpace=useNullSpace)
-      p.setJointMotorControl2(bodyIndex = baxterId, jointIndex = 49, controlMode = p.POSITION_CONTROL, targetPosition = 1)
-      p.setJointMotorControl2(bodyIndex = baxterId, jointIndex = 51, controlMode = p.POSITION_CONTROL, targetPosition = -1)
-      setMotors(baxterId, jointPoses)
+
       
 
       #sleep(0.1)
