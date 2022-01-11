@@ -3,7 +3,7 @@ import pybullet as p
 import numpy as np
 import cv2
 import time
-
+import pybullet_utils.bullet_client as bullet_client
 position = []
 color = ""
 
@@ -35,9 +35,11 @@ def detection():
         color = "Green"
     
     elif count_red > 0:
+        print("KIRMIZI" )
         color = "Red"
         
     elif count_blue > 0:
+        print("MAVI" )
         color = "Blue"
         
     res = cv2.bitwise_and(frame, frame, mask= green_mask)
@@ -48,12 +50,12 @@ def detection():
     cv2.imshow("green", res)
     cv2.imshow("red", res2)
     cv2.imshow("blue", res3)
-    
+    cv2.waitKey(0)    
 
 def get_camera_image():
     view_matrix = p.computeViewMatrix(
             cameraEyePosition=[0, 0, 0.98],
-            cameraTargetPosition=[0, 0, .6],
+            cameraTargetPosition=[-0.2, -0.2, .35],
             cameraUpVector=[0, 1, 0])
 
     projection_matrix = p.computeProjectionMatrixFOV(
@@ -86,7 +88,7 @@ def setUpWorld(initialSimSteps=100):
     # Load plane
     p.loadURDF("plane.urdf", [0, 0, -1], useFixedBase=True)
     
-    p.loadURDF("table/table.urdf", [0, 0, -1], useFixedBase=True)
+    p.loadURDF("table/table.urdf", [-0.2, -0.2, -1], useFixedBase=True)
     
     p.loadURDF("basket/basket.urdf", [-1, 0, -1])
     p.loadURDF("basket/basket.urdf", [-1, -0.4, -1])
@@ -96,8 +98,8 @@ def setUpWorld(initialSimSteps=100):
     p.configureDebugVisualizer(p.COV_ENABLE_RENDERING,0)
     # Load Baxter
     baxterId = p.loadURDF("baxter_common/baxter_description/urdf/toms_baxter.urdf", useFixedBase=True)
-    p.resetBasePositionAndOrientation(baxterId, [0.0, -0.8, 0.0], [0., 0., -1., -1.])
-    #p.resetBasePositionAndOrientation(baxterId, [0.5, -0.8, 0.0],[0,0,0,1])
+    p.resetBasePositionAndOrientation(baxterId, [0.2, -0.8, 0.0], [0., 0., -1., -1.])
+    # p.resetBasePositionAndOrientation(baxterId, [0.5, -0.8, 0.0],[0,0,0,1])
     #p.resetBasePositionAndOrientation(baxterId, [0, 0, 0], )
 
     p.configureDebugVisualizer(p.COV_ENABLE_RENDERING,1)
@@ -106,7 +108,7 @@ def setUpWorld(initialSimSteps=100):
     endEffectorId = 48 # (left gripper left finger)
 
     # Set gravity
-    p.setGravity(0., 0., -50)
+    p.setGravity(0., 0., -10)
 
     # Let the world run for a bit
     for _ in range(initialSimSteps):
@@ -151,7 +153,7 @@ def getJointRanges(bodyId, includeFixed=False):
 
     return lowerLimits, upperLimits, jointRanges, restPoses
 
-def accurateIK(bodyId, endEffectorId, targetPosition, lowerLimits, upperLimits, jointRanges, restPoses, 
+def accurateIK(bodyId, endEffectorId, targetPosition, targetOrientation, 
                useNullSpace=False, maxIter=10, threshold=1e-4):
     """
     Parameters
@@ -179,14 +181,13 @@ def accurateIK(bodyId, endEffectorId, targetPosition, lowerLimits, upperLimits, 
 
     while (not closeEnough and iter<maxIter):
         if useNullSpace:
-            jointPoses = p.calculateInverseKinematics(bodyId, endEffectorId, targetPosition,
-                lowerLimits=lowerLimits, upperLimits=upperLimits, jointRanges=jointRanges, 
-                restPoses=restPoses)
+            jointPoses = p.calculateInverseKinematics(bodyId, endEffectorId, targetPosition,targetOrientation=[0,1,0,0])
         else:
             jointPoses = p.calculateInverseKinematics(bodyId, endEffectorId, targetPosition)
     
         for i in range(numJoints):
             jointInfo = p.getJointInfo(bodyId, i)
+            
             qIndex = jointInfo[3]
             if qIndex > -1:
                 p.resetJointState(bodyId,i,jointPoses[qIndex-7])
@@ -214,7 +215,7 @@ def setMotors(bodyId, jointPoses):
         jointInfo = p.getJointInfo(bodyId, i)
         qIndex = jointInfo[3]
         if qIndex > -1:
-            p.setJointMotorControl2(bodyIndex=bodyId, jointIndex=40, controlMode=p.POSITION_CONTROL,
+            p.setJointMotorControl2(bodyIndex=bodyId, jointIndex=40, controlMode=p.POSITION_CONTROL,targetVelocity=0,
                                     targetPosition=jointPoses[qIndex-7])
    
 def randomSpawn():
@@ -222,47 +223,41 @@ def randomSpawn():
     
     arr = np.random.randint(3,size=1)
     rnd = np.random.randint(4,size=1)
-    arr1 = np.random.randint(150,size=2)
-
-    x = arr1[0]/1000
-    y = arr1[1]/1000
-    if rnd[0]==0:
-        pass
-    elif rnd[0]==1:
-        x=-1*x
-    elif rnd[0]==2:
-        y=-1*y
-    else:
-        y=-1*y
-        x=-1*x
+    arr1 = np.random.randint(300,size=2)
+    arr1+=50
+    x = -arr1[0]/1000
+    y = -arr1[1]/1000
+    
 
     box_id = 0
-    
+    # box_id = p.loadURDF("cube_green.urdf", [x, y, -0.35],globalScaling=0.42)
     if arr[0]==0:
-        box_id = p.loadURDF("cube/boston_box_blue.urdf", [x, y, -0.35])
+        box_id = p.loadURDF("cube_blue.urdf", [x, y, -0.35],globalScaling=0.42)
+        pass
     elif arr[0]==1:
-        box_id = p.loadURDF("cube/boston_box_red.urdf", [x, y, -0.35])
+        pass
+        box_id = p.loadURDF("cube_red.urdf", [x, y, -0.35],globalScaling=0.42)
     elif arr[0]==2:
-        box_id = p.loadURDF("cube/boston_box_green.urdf", [x, y, -0.35])
+        box_id = p.loadURDF("cube_green.urdf", [x, y, -0.35],globalScaling=0.42)
 
     position, cubeOrn = p.getBasePositionAndOrientation(box_id)
     
 
 def moveTo(targetPosition, prevPos = [0,0,0]):
 	currentPos = prevPos.copy()
-	for i in range(100):
-		currentPos[0] = currentPos[0] + ((targetPosition[0] - prevPos[0]) / 100)
-		currentPos[1] = currentPos[1] + ((targetPosition[1] - prevPos[1]) / 100)
-		currentPos[2] = currentPos[2] + ((targetPosition[2] - prevPos[2]) / 100)
-		lowerLimits, upperLimits, jointRanges, restPoses = getJointRanges(baxterId, includeFixed=False)
-		jointPoses = accurateIK(baxterId, endEffectorId, currentPos, lowerLimits, upperLimits, jointRanges, restPoses, useNullSpace=useNullSpace)
+	for i in range(200):
+		currentPos[0] = currentPos[0] + ((targetPosition[0] - prevPos[0]) / 200)
+		currentPos[1] = currentPos[1] + ((targetPosition[1] - prevPos[1]) / 200)
+		currentPos[2] = currentPos[2] + ((targetPosition[2] - prevPos[2]) / 200)
+		# lowerLimits, upperLimits, jointRanges, restPoses = getJointRanges(baxterId, includeFixed=False)
+		jointPoses = accurateIK(baxterId, endEffectorId, currentPos, [0,0,1,0], useNullSpace=useNullSpace)
 		setMotors(baxterId, jointPoses)
-		p.stepSimulation()
+		runNSteps(1)
   
 def runNSteps(n):
     for i in range(n):
-    	time.sleep(0.01)
-    	p.stepSimulation()
+        # time.sleep(0.01)
+        p.stepSimulation()
     	
     
 if __name__ == "__main__":
@@ -288,7 +283,7 @@ if __name__ == "__main__":
       randomSpawn()
       detection()
       
-      runNSteps(100)
+      runNSteps(200)
        
       
        
@@ -303,8 +298,8 @@ if __name__ == "__main__":
       runNSteps(100)
 
       prevPos = targetPosition.copy()
-      targetPosition = [position[0],position[1],-0.35]
-      nullSpaceId = p.addUserDebugParameter("nullSpace",0,1,1)
+      targetPosition = [position[0]+0.01,position[1]+0.01,-0.38]
+      nullSpaceId = p.addUserDebugParameter("nullSpace",0,1,0)
       moveTo(targetPosition, prevPos)
       
       
@@ -313,8 +308,8 @@ if __name__ == "__main__":
       runNSteps(100)
       
       prevPos = targetPosition.copy()
-      targetPosition = [position[0],position[1],-0.20]
-      nullSpaceId = p.addUserDebugParameter("nullSpace",0,1,1)
+      targetPosition = [position[0]+0.01,position[1]+0.01,-0.20]
+      nullSpaceId = p.addUserDebugParameter("nullSpace",0,1,0)
       moveTo(targetPosition, prevPos)
       
       previousLoopPos = targetPosition.copy()
