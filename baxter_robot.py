@@ -42,15 +42,15 @@ def detection():
         print("MAVI" )
         color = "Blue"
         
-    res = cv2.bitwise_and(frame, frame, mask= green_mask)
-    res2 = cv2.bitwise_and(frame, frame, mask= red_mask)
-    res3 = cv2.bitwise_and(frame, frame, mask= blue_mask)
+    # res = cv2.bitwise_and(frame, frame, mask= green_mask)
+    # res2 = cv2.bitwise_and(frame, frame, mask= red_mask)
+    # res3 = cv2.bitwise_and(frame, frame, mask= blue_mask)
     
-    cv2.imshow("frame", frame)
-    cv2.imshow("green", res)
-    cv2.imshow("red", res2)
-    cv2.imshow("blue", res3)
-    cv2.waitKey(0)    
+    # cv2.imshow("frame", frame)
+    # cv2.imshow("green", res)
+    # cv2.imshow("red", res2)
+    # cv2.imshow("blue", res3)
+    # cv2.waitKey(0)    
 
 def get_camera_image():
     view_matrix = p.computeViewMatrix(
