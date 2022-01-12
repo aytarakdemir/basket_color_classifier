@@ -1061,6 +1061,12 @@
     <kd>1.0</kd>
   </gazebo>
   <link name="l_gripper_l_finger_tip">
+    <contact>
+      <lateral_friction value="1000.0"/>
+      <rolling_friction value="1000.0"/>
+      <contact_cfm value="1000.0"/>
+      <contact_erp value="1000.0"/>
+    </contact>
     <visual>
       <origin rpy="0 0 3.14159265359" xyz="0 0 0"/>
       <geometry>
@@ -1117,6 +1123,12 @@
     <kd>1.0</kd>
   </gazebo>
   <link name="l_gripper_r_finger_tip">
+    <contact>
+      <lateral_friction value="1000.0"/>
+      <rolling_friction value="1000.0"/>
+      <contact_cfm value="1000.0"/>
+      <contact_erp value="1000.0"/>
+    </contact>
     <visual>
       <origin rpy="0 0 0.0" xyz="0 0 0"/>
       <geometry>

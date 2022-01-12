@@ -248,7 +248,7 @@ def moveTo(targetPosition, prevPos = [0,0,0]):
 	for i in range(200):
 		currentPos[0] = currentPos[0] + ((targetPosition[0] - prevPos[0]) / 200)
 		currentPos[1] = currentPos[1] + ((targetPosition[1] - prevPos[1]) / 200)
-		currentPos[2] = currentPos[2] + ((targetPosition[2] - prevPos[2]) / 200)
+		currentPos[2] = currentPos[2] + ((targetPosition[2]+0.02 - prevPos[2]) / 200)
 		# lowerLimits, upperLimits, jointRanges, restPoses = getJointRanges(baxterId, includeFixed=False)
 		jointPoses = accurateIK(baxterId, endEffectorId, currentPos, [0,0,1,0], useNullSpace=useNullSpace)
 		setMotors(baxterId, jointPoses)
