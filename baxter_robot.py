@@ -220,7 +220,8 @@ def setMotors(bodyId, jointPoses):
    
 def randomSpawn():
     global position
-    
+    global cubeOrn
+
     arr = np.random.randint(3,size=1)
     rnd = np.random.randint(4,size=1)
     arr1 = np.random.randint(300,size=2)
@@ -228,8 +229,8 @@ def randomSpawn():
     x = -arr1[0]/1000
     y = -arr1[1]/1000
     
-
-    box_id = 0
+    
+    global box_id
     # box_id = p.loadURDF("cube_green.urdf", [x, y, -0.35],globalScaling=0.42)
     if arr[0]==0:
         box_id = p.loadURDF("cube_blue.urdf", [x, y, -0.35],globalScaling=0.42)
@@ -243,20 +244,27 @@ def randomSpawn():
     position, cubeOrn = p.getBasePositionAndOrientation(box_id)
     
 
-def moveTo(targetPosition, prevPos = [0,0,0]):
-	currentPos = prevPos.copy()
-	for i in range(200):
-		currentPos[0] = currentPos[0] + ((targetPosition[0] - prevPos[0]) / 200)
-		currentPos[1] = currentPos[1] + ((targetPosition[1] - prevPos[1]) / 200)
-		currentPos[2] = currentPos[2] + ((targetPosition[2]+0.02 - prevPos[2]) / 200)
-		# lowerLimits, upperLimits, jointRanges, restPoses = getJointRanges(baxterId, includeFixed=False)
-		jointPoses = accurateIK(baxterId, endEffectorId, currentPos, [0,0,1,0], useNullSpace=useNullSpace)
-		setMotors(baxterId, jointPoses)
-		runNSteps(1)
+def moveTo(targetPosition, prevPos = [0,0,0], gripperClosed = False):
+    currentPos = prevPos.copy()
+    for i in range(200):
+        currentPos[0] = currentPos[0] + ((targetPosition[0] - prevPos[0]) / 200)
+        currentPos[1] = currentPos[1] + ((targetPosition[1] - prevPos[1]) / 200)
+        currentPos[2] = currentPos[2] + ((targetPosition[2] - prevPos[2]) / 200)
+        # lowerLimits, upperLimits, jointRanges, restPoses = getJointRanges(baxterId, includeFixed=False)
+        jointPoses = accurateIK(baxterId, endEffectorId, currentPos, [0,0,1,0], useNullSpace=useNullSpace)
+        setMotors(baxterId, jointPoses)
+        if gripperClosed:
+            position, cubeOrn = p.getBasePositionAndOrientation(box_id)
+            position = list(position)
+            # Updating the position of the cube as if it was the gripper, so it stays fixed to the gripper.
+            position[0] = position[0] + ((targetPosition[0] - prevPos[0]) / 200)
+            position[1] = position[1] + ((targetPosition[1] - prevPos[1]) / 200)
+            position[2] = position[2] + ((targetPosition[2] - prevPos[2]) / 200)
+            p.resetBasePositionAndOrientation(box_id, position, cubeOrn)
+        runNSteps(1)
   
 def runNSteps(n):
     for i in range(n):
-        # time.sleep(0.01)
         p.stepSimulation()
     	
     
@@ -279,65 +287,49 @@ if __name__ == "__main__":
       p.stepSimulation()
       nullSpace = p.readUserDebugParameter(nullSpaceId)
       
-      #if i % 100 == 0:
       randomSpawn()
       detection()
       
       runNSteps(200)
        
-      
-       
+      gripperClosed = False
+
+      # Position the hand just above the cobe 
       useNullSpace = nullSpace > 0.5
       targetPosition = [position[0],position[1],-0.30]
-      moveTo(targetPosition, previousLoopPos)
+      moveTo(targetPosition, previousLoopPos, gripperClosed)
       
-      
-      
+      # Open the gripper
+      gripperClosed = False
       p.setJointMotorControl2(bodyIndex = baxterId, jointIndex = 49, controlMode = p.POSITION_CONTROL, force = 100, targetPosition = 1)
       p.setJointMotorControl2(bodyIndex = baxterId, jointIndex = 51, controlMode = p.POSITION_CONTROL, force = 100, targetPosition = -1)
       runNSteps(100)
-
+      
+      # Lower the gripper
       prevPos = targetPosition.copy()
-      targetPosition = [position[0]+0.01,position[1]+0.01,-0.38]
+      targetPosition = [position[0],position[1],-0.35]
       nullSpaceId = p.addUserDebugParameter("nullSpace",0,1,0)
-      moveTo(targetPosition, prevPos)
+      moveTo(targetPosition, prevPos, gripperClosed)
       
-      
+      # Close the gripper
       p.setJointMotorControl2(bodyIndex = baxterId, jointIndex = 49, controlMode = p.POSITION_CONTROL, force = 100, targetPosition = -1)
       p.setJointMotorControl2(bodyIndex = baxterId, jointIndex = 51, controlMode = p.POSITION_CONTROL, force = 100, targetPosition = 1)
       runNSteps(100)
-      
+      gripperClosed = True
+
+      # Lift the hand
       prevPos = targetPosition.copy()
       targetPosition = [position[0]+0.01,position[1]+0.01,-0.20]
       nullSpaceId = p.addUserDebugParameter("nullSpace",0,1,0)
-      moveTo(targetPosition, prevPos)
+      moveTo(targetPosition, prevPos, gripperClosed)
       
       previousLoopPos = targetPosition.copy()
-       
-       
-        
-      """
-      useNullSpace = nullSpace > 0.5
-      if (i % 100) < 10:
-        targetPosition = [position[0],position[1],-0.30]
-        moveTo(targetPosition)
-      elif (i % 100) > 10 and (i % 100) < 40:
-      	p.setJointMotorControl2(bodyIndex = baxterId, jointIndex = 49, controlMode = p.POSITION_CONTROL, force = 100, targetPosition = 1)
-      	p.setJointMotorControl2(bodyIndex = baxterId, jointIndex = 51, controlMode = p.POSITION_CONTROL, force = 100, targetPosition = -1)
-      elif (i % 100) > 40 and (i % 100) < 50:
-        targetPosition = [position[0],position[1],-0.35]
-        nullSpaceId = p.addUserDebugParameter("nullSpace",0,1,1)
-        moveTo(targetPosition)
-      elif (i % 100) > 50 and (i % 100) < 80:
-      	p.setJointMotorControl2(bodyIndex = baxterId, jointIndex = 49, controlMode = p.POSITION_CONTROL, force = 100, targetPosition = -1)
-      	p.setJointMotorControl2(bodyIndex = baxterId, jointIndex = 51, controlMode = p.POSITION_CONTROL, force = 100, targetPosition = 1)
-      elif (i % 100) > 80:
-        targetPosition = [position[0],position[1],-0.20]
-        moveTo(targetPosition)
-      """
-      
+    
 
-      
-
-      #sleep(0.1)
+      # Open the gripper
+      p.setJointMotorControl2(bodyIndex = baxterId, jointIndex = 49, controlMode = p.POSITION_CONTROL, force = 100, targetPosition = 1)
+      p.setJointMotorControl2(bodyIndex = baxterId, jointIndex = 51, controlMode = p.POSITION_CONTROL, force = 100, targetPosition = -1)
+      runNSteps(100)
+      gripperClosed = False
+    
 
