@@ -31,16 +31,20 @@ def detection():
     count_green = cv2.countNonZero(green_mask)
     count_red = cv2.countNonZero(red_mask)
     
+    # print("green: " + str(count_green))
+    # print("red: " + str(count_red))
+    # print("blue: " + str(count_blue))
+
     if count_green > 0:
         color = "Green"
     
     elif count_red > 0:
-        print("KIRMIZI" )
         color = "Red"
         
     elif count_blue > 0:
-        print("MAVI" )
         color = "Blue"
+
+    # print(color)
         
     # res = cv2.bitwise_and(frame, frame, mask= green_mask)
     # res2 = cv2.bitwise_and(frame, frame, mask= red_mask)
@@ -54,8 +58,8 @@ def detection():
 
 def get_camera_image():
     view_matrix = p.computeViewMatrix(
-            cameraEyePosition=[0, 0, 0.98],
-            cameraTargetPosition=[-0.2, -0.2, .35],
+            cameraEyePosition=[0, 0, 0.78],
+            cameraTargetPosition=[0, 0, .35],
             cameraUpVector=[0, 1, 0])
 
     projection_matrix = p.computeProjectionMatrixFOV(
@@ -90,9 +94,9 @@ def setUpWorld(initialSimSteps=100):
     
     p.loadURDF("table/table.urdf", [-0.2, -0.2, -1], useFixedBase=True)
     
-    p.loadURDF("basket/basket.urdf", [-1, 0, -1])
-    p.loadURDF("basket/basket.urdf", [-1, -0.4, -1])
-    p.loadURDF("basket/basket.urdf", [-1, 0.4, -1])
+    p.loadURDF("basket/basket.urdf", [-0.7, 0, -1])
+    p.loadURDF("basket/basket.urdf", [-0.7, -0.4, -1])
+    p.loadURDF("basket/basket.urdf", [-0.4, -0.7, -1])
 
     sleep(0.1)
     p.configureDebugVisualizer(p.COV_ENABLE_RENDERING,0)
@@ -262,6 +266,16 @@ def moveTo(targetPosition, prevPos = [0,0,0], gripperClosed = False):
             position[2] = position[2] + ((targetPosition[2] - prevPos[2]) / 200)
             p.resetBasePositionAndOrientation(box_id, position, cubeOrn)
         runNSteps(1)
+
+def openGripper():
+    p.setJointMotorControl2(bodyIndex = baxterId, jointIndex = 49, controlMode = p.POSITION_CONTROL, force = 100, targetPosition = 1)
+    p.setJointMotorControl2(bodyIndex = baxterId, jointIndex = 51, controlMode = p.POSITION_CONTROL, force = 100, targetPosition = -1)
+    runNSteps(100)
+
+def closeGripper():
+    p.setJointMotorControl2(bodyIndex = baxterId, jointIndex = 49, controlMode = p.POSITION_CONTROL, force = 100, targetPosition = -1)
+    p.setJointMotorControl2(bodyIndex = baxterId, jointIndex = 51, controlMode = p.POSITION_CONTROL, force = 100, targetPosition = 1)
+    runNSteps(100)
   
 def runNSteps(n):
     for i in range(n):
@@ -284,52 +298,64 @@ if __name__ == "__main__":
     previousLoopPos= [0, 0, 0]
     
     for i in range(maxIters):
-      p.stepSimulation()
-      nullSpace = p.readUserDebugParameter(nullSpaceId)
-      
-      randomSpawn()
-      detection()
-      
-      runNSteps(200)
-       
-      gripperClosed = False
+        p.stepSimulation()
+        nullSpace = p.readUserDebugParameter(nullSpaceId)
+        nullSpaceId = p.addUserDebugParameter("nullSpace",0,1,0)
+        useNullSpace = nullSpace > 0.5
 
-      # Position the hand just above the cobe 
-      useNullSpace = nullSpace > 0.5
-      targetPosition = [position[0],position[1],-0.30]
-      moveTo(targetPosition, previousLoopPos, gripperClosed)
-      
-      # Open the gripper
-      gripperClosed = False
-      p.setJointMotorControl2(bodyIndex = baxterId, jointIndex = 49, controlMode = p.POSITION_CONTROL, force = 100, targetPosition = 1)
-      p.setJointMotorControl2(bodyIndex = baxterId, jointIndex = 51, controlMode = p.POSITION_CONTROL, force = 100, targetPosition = -1)
-      runNSteps(100)
-      
-      # Lower the gripper
-      prevPos = targetPosition.copy()
-      targetPosition = [position[0],position[1],-0.35]
-      nullSpaceId = p.addUserDebugParameter("nullSpace",0,1,0)
-      moveTo(targetPosition, prevPos, gripperClosed)
-      
-      # Close the gripper
-      p.setJointMotorControl2(bodyIndex = baxterId, jointIndex = 49, controlMode = p.POSITION_CONTROL, force = 100, targetPosition = -1)
-      p.setJointMotorControl2(bodyIndex = baxterId, jointIndex = 51, controlMode = p.POSITION_CONTROL, force = 100, targetPosition = 1)
-      runNSteps(100)
-      gripperClosed = True
+        randomSpawn()
+        detection()
+        
+        runNSteps(200)
+        
+        gripperClosed = False
 
-      # Lift the hand
-      prevPos = targetPosition.copy()
-      targetPosition = [position[0]+0.01,position[1]+0.01,-0.20]
-      nullSpaceId = p.addUserDebugParameter("nullSpace",0,1,0)
-      moveTo(targetPosition, prevPos, gripperClosed)
-      
-      previousLoopPos = targetPosition.copy()
-    
+        # Position the hand just above the cube 
+        targetPosition = [position[0],position[1],-0.30]
+        moveTo(targetPosition, previousLoopPos, gripperClosed)
+        
+        # Open the gripper
+        gripperClosed = False
+        openGripper()
+        
+        # Lower the gripper
+        prevPos = targetPosition.copy()
+        targetPosition = [position[0],position[1],-0.35]
+        moveTo(targetPosition, prevPos, gripperClosed)
+        
+        # Close the gripper
+        closeGripper()
+        gripperClosed = True
 
-      # Open the gripper
-      p.setJointMotorControl2(bodyIndex = baxterId, jointIndex = 49, controlMode = p.POSITION_CONTROL, force = 100, targetPosition = 1)
-      p.setJointMotorControl2(bodyIndex = baxterId, jointIndex = 51, controlMode = p.POSITION_CONTROL, force = 100, targetPosition = -1)
-      runNSteps(100)
-      gripperClosed = False
+        # Lift the hand
+        prevPos = targetPosition.copy()
+        targetPosition = [position[0],position[1],-0.20]
+        moveTo(targetPosition, prevPos, gripperClosed)
+        
+        # Move to the corresponding basket
+        prevPos = targetPosition.copy()
+        if color == "Red":
+            targetPosition = [-0.7, 0,-0.20]
+            moveTo(targetPosition, prevPos, gripperClosed)
+        elif color == "Blue":
+            targetPosition = [-0.7, -0.4,-0.20]
+            moveTo(targetPosition, prevPos, gripperClosed)
+        elif color == "Green":
+            targetPosition = [-0.4, -0.7,-0.20]
+            moveTo(targetPosition, prevPos, gripperClosed)
+        else:
+            # If color undefined, throw it on the ground 
+            targetPosition = [-0.7, -0.7,-0.20]
+            moveTo(targetPosition, prevPos, gripperClosed)
+
+
+        previousLoopPos = targetPosition.copy()
+        
+        # Open the gripper
+        openGripper()
+        gripperClosed = False
+
+        p.removeBody(box_id)
+
     
 
