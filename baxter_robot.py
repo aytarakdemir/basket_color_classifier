@@ -4,12 +4,11 @@ import numpy as np
 import cv2
 import time
 import pybullet_utils.bullet_client as bullet_client
+
 position = []
 color = ""
 
-
 def detection():
-    global green_pos
     global color
     
     frame = get_camera_image()
@@ -30,10 +29,6 @@ def detection():
     count_blue = cv2.countNonZero(blue_mask)
     count_green = cv2.countNonZero(green_mask)
     count_red = cv2.countNonZero(red_mask)
-    
-    # print("green: " + str(count_green))
-    # print("red: " + str(count_red))
-    # print("blue: " + str(count_blue))
 
     if count_green > 0:
         color = "Green"
@@ -44,33 +39,21 @@ def detection():
     elif count_blue > 0:
         color = "Blue"
 
-    # print(color)
-        
-    # res = cv2.bitwise_and(frame, frame, mask= green_mask)
-    # res2 = cv2.bitwise_and(frame, frame, mask= red_mask)
-    # res3 = cv2.bitwise_and(frame, frame, mask= blue_mask)
-    
-    # cv2.imshow("frame", frame)
-    # cv2.imshow("green", res)
-    # cv2.imshow("red", res2)
-    # cv2.imshow("blue", res3)
-    # cv2.waitKey(0)    
-
 def get_camera_image():
     view_matrix = p.computeViewMatrix(
-            cameraEyePosition=[0, 0, 0.78],
-            cameraTargetPosition=[0, 0, .35],
-            cameraUpVector=[0, 1, 0])
+            cameraEyePosition = [0, 0, 0.78],
+            cameraTargetPosition = [0, 0, .35],
+            cameraUpVector = [0, 1, 0])
 
     projection_matrix = p.computeProjectionMatrixFOV(
-            fov=45.0,
-            aspect=1.0,
-            nearVal=0.1,
-            farVal=1.5)
+            fov = 45.0,
+            aspect = 1.0,
+            nearVal = 0.1,
+            farVal = 1.5)
             
     width, height, rgb, depth, seg = p.getCameraImage(
-        width=480,
-        height=320,
+        width = 480,
+        height = 320,
         projectionMatrix = projection_matrix,
         viewMatrix = view_matrix
         )
@@ -103,9 +86,6 @@ def setUpWorld(initialSimSteps=100):
     # Load Baxter
     baxterId = p.loadURDF("baxter_common/baxter_description/urdf/toms_baxter.urdf", useFixedBase=True)
     p.resetBasePositionAndOrientation(baxterId, [0.2, -0.8, 0.0], [0., 0., -1., -1.])
-    # p.resetBasePositionAndOrientation(baxterId, [0.5, -0.8, 0.0],[0,0,0,1])
-    #p.resetBasePositionAndOrientation(baxterId, [0, 0, 0], )
-
     p.configureDebugVisualizer(p.COV_ENABLE_RENDERING,1)
 
     # Grab relevant joint IDs
@@ -199,10 +179,8 @@ def accurateIK(bodyId, endEffectorId, targetPosition, targetOrientation,
         newPos = ls[4]
         diff = [targetPosition[0]-newPos[0],targetPosition[1]-newPos[1],targetPosition[2]-newPos[2]]
         dist2 = np.sqrt((diff[0]*diff[0] + diff[1]*diff[1] + diff[2]*diff[2]))
-#        print("dist2=",dist2)
         closeEnough = (dist2 < threshold)
         iter=iter+1
-#    print("iter=",iter)
     return jointPoses
 
 def setMotors(bodyId, jointPoses):
@@ -235,15 +213,15 @@ def randomSpawn():
     
     
     global box_id
-    # box_id = p.loadURDF("cube_green.urdf", [x, y, -0.35],globalScaling=0.42)
-    if arr[0]==0:
-        box_id = p.loadURDF("cube_blue.urdf", [x, y, -0.35],globalScaling=0.42)
+
+    if arr[0] == 0:
+        box_id = p.loadURDF("cube_blue.urdf", [x, y, -0.35], globalScaling=0.42)
         pass
-    elif arr[0]==1:
+    elif arr[0] == 1:
         pass
-        box_id = p.loadURDF("cube_red.urdf", [x, y, -0.35],globalScaling=0.42)
-    elif arr[0]==2:
-        box_id = p.loadURDF("cube_green.urdf", [x, y, -0.35],globalScaling=0.42)
+        box_id = p.loadURDF("cube_red.urdf", [x, y, -0.35], globalScaling=0.42)
+    elif arr[0] == 2:
+        box_id = p.loadURDF("cube_green.urdf", [x, y, -0.35], globalScaling=0.42)
 
     position, cubeOrn = p.getBasePositionAndOrientation(box_id)
     
@@ -254,13 +232,13 @@ def moveTo(targetPosition, prevPos = [0,0,0], gripperClosed = False):
         currentPos[0] = currentPos[0] + ((targetPosition[0] - prevPos[0]) / 200)
         currentPos[1] = currentPos[1] + ((targetPosition[1] - prevPos[1]) / 200)
         currentPos[2] = currentPos[2] + ((targetPosition[2] - prevPos[2]) / 200)
-        # lowerLimits, upperLimits, jointRanges, restPoses = getJointRanges(baxterId, includeFixed=False)
+
         jointPoses = accurateIK(baxterId, endEffectorId, currentPos, [0,0,1,0], useNullSpace=useNullSpace)
         setMotors(baxterId, jointPoses)
         if gripperClosed:
             position, cubeOrn = p.getBasePositionAndOrientation(box_id)
             position = list(position)
-            # Updating the position of the cube as if it was the gripper, so it stays fixed to the gripper.
+            
             position[0] = position[0] + ((targetPosition[0] - prevPos[0]) / 200)
             position[1] = position[1] + ((targetPosition[1] - prevPos[1]) / 200)
             position[2] = position[2] + ((targetPosition[2] - prevPos[2]) / 200)
@@ -355,27 +333,24 @@ if __name__ == "__main__":
         # Open the gripper
         openGripper()
         gripperClosed = False
-        pos=p.getBasePositionAndOrientation(box_id)[0]
+        pos = p.getBasePositionAndOrientation(box_id)[0]
         # success+=1
+
         if color == "Red":
-            # print(pos)
             targetPosition = [-0.7, 0,-0.20]
-            if -0.9<pos[0]<-0.5 and -0.2 <pos[1]< 0.2:
+            if -0.9 < pos[0] < -0.5 and -0.2 < pos[1] <0.2:
                 success+=1
         elif color == "Blue":
-            # print(pos)
             targetPosition = [-0.7, -0.4,-0.20]
-            if -0.9<pos[0]<-0.5 and -0.6 <pos[1]< -0.2:
+            if -0.9 < pos[0] < -0.5 and -0.6 < pos[1] < -0.2:
                 success+=1
         elif color == "Green":
-            # print(pos)
             targetPosition = [-0.4, -0.7,-0.20]
-            if -0.6<pos[0]<-0.2 and -0.9 <pos[1]< -0.5:
+            if -0.6 < pos[0] < -0.2 and -0.9 < pos[1] < -0.5:
                 success+=1
-        total+=1
-        # runNSteps(10)
-        p.removeBody(box_id)
-        print("Successful: ",success)
-        print("Failed: ",(total-success))
-        print("Success rate: ",str(success*100/total))
 
+        total+=1
+        p.removeBody(box_id)
+        print("Successful: ", success)
+        print("Failed: ", (total-success))
+        print("Success rate: ", str(success*100/total))
