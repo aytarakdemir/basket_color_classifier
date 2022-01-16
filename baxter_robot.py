@@ -290,7 +290,8 @@ if __name__ == "__main__":
     baxterId, endEffectorId = setUpWorld()
     lowerLimits, upperLimits, jointRanges, restPoses = getJointRanges(baxterId, includeFixed=False)
     maxIters = 100000
-
+    success=0
+    total=0
     time.sleep(2.)
 
     p.getCameraImage(320,200, renderer=p.ER_BULLET_HARDWARE_OPENGL)
@@ -354,8 +355,27 @@ if __name__ == "__main__":
         # Open the gripper
         openGripper()
         gripperClosed = False
-
+        pos=p.getBasePositionAndOrientation(box_id)[0]
+        # success+=1
+        if color == "Red":
+            # print(pos)
+            targetPosition = [-0.7, 0,-0.20]
+            if -0.9<pos[0]<-0.5 and -0.2 <pos[1]< 0.2:
+                success+=1
+        elif color == "Blue":
+            # print(pos)
+            targetPosition = [-0.7, -0.4,-0.20]
+            if -0.9<pos[0]<-0.5 and -0.6 <pos[1]< -0.2:
+                success+=1
+        elif color == "Green":
+            # print(pos)
+            targetPosition = [-0.4, -0.7,-0.20]
+            if -0.6<pos[0]<-0.2 and -0.9 <pos[1]< -0.5:
+                success+=1
+        total+=1
+        # runNSteps(10)
         p.removeBody(box_id)
-
-    
+        print("Successful: ",success)
+        print("Failed: ",(total-success))
+        print("Success rate: ",str(success*100/total))
 
