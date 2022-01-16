@@ -4,8 +4,8 @@
 \
 -Python 3.*\
 -pip\
-\
+
 ### HOW TO RUN:
 \
 -pip install -r requirements.txt\
--python baxter_robot.py\
+-python baxter_robot.py
