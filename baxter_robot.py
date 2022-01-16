@@ -60,16 +60,6 @@ def get_camera_image():
     return rgb
 
 def setUpWorld(initialSimSteps=100):
-    """
-    Reset the simulation to the beginning and reload all models.
-    Parameters
-    ----------
-    initialSimSteps : int
-    Returns
-    -------
-    baxterId : int
-    endEffectorId : int
-    """
     p.resetSimulation()
     
     # Load plane
@@ -101,19 +91,6 @@ def setUpWorld(initialSimSteps=100):
     return baxterId, endEffectorId
     
 def getJointRanges(bodyId, includeFixed=False):
-    """
-    Parameters
-    ----------
-    bodyId : int
-    includeFixed : bool
-
-    Returns
-    -------
-    lowerLimits : [ float ] * numDofs
-    upperLimits : [ float ] * numDofs
-    jointRanges : [ float ] * numDofs
-    restPoses : [ float ] * numDofs
-    """
 
     lowerLimits, upperLimits, jointRanges, restPoses = [], [], [], []
 
@@ -139,24 +116,6 @@ def getJointRanges(bodyId, includeFixed=False):
 
 def accurateIK(bodyId, endEffectorId, targetPosition, targetOrientation, 
                useNullSpace=False, maxIter=10, threshold=1e-4):
-    """
-    Parameters
-    ----------
-    bodyId : int
-    endEffectorId : int
-    targetPosition : [float, float, float]
-    lowerLimits : [float] 
-    upperLimits : [float] 
-    jointRanges : [float] 
-    restPoses : [float]
-    useNullSpace : bool
-    maxIter : int
-    threshold : float
-
-    Returns
-    -------
-    jointPoses : [float] * numDofs
-    """
     closeEnough = False
     iter = 0
     dist2 = 1e30
@@ -184,13 +143,6 @@ def accurateIK(bodyId, endEffectorId, targetPosition, targetOrientation,
     return jointPoses
 
 def setMotors(bodyId, jointPoses):
-    """
-    Parameters
-    ----------
-    bodyId : int
-    jointPoses : [float] * numDofs
-    """
-    
     numJoints = p.getNumJoints(bodyId)
    
     for i in range(numJoints):
@@ -334,7 +286,6 @@ if __name__ == "__main__":
         openGripper()
         gripperClosed = False
         pos = p.getBasePositionAndOrientation(box_id)[0]
-        # success+=1
 
         if color == "Red":
             targetPosition = [-0.7, 0,-0.20]
