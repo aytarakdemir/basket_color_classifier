@@ -3,7 +3,7 @@
 ### Requirements:
 \
 -Python 3.*\
--pip\
+-pip
 
 ### HOW TO RUN:
 \
